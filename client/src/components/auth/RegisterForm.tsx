@@ -11,18 +11,23 @@ import { Separator } from "@/components/ui/separator";
 import { PasswordInput } from "./PasswordInput";
 import { SocialButtons } from "./SocialButtons";
 import axios from "axios";
+import api from "@/lib/axios";
+import { error } from "console";
+import { useRouter, useSearchParams } from "next/navigation";
 
-const registerSchema = z.object({
-  name: z.string().min(1, "Full name is required"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(8, "Confirm password is required"),
-  terms: z.boolean().refine((val) => val === true, "You must agree to terms"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(1, "Full name is required"),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(8, "Confirm password is required"),
+    terms: z.boolean().refine((val) => val === true, "You must agree to terms"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
@@ -37,18 +42,19 @@ export const RegisterForm = () => {
     resolver: zodResolver(registerSchema),
   });
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
+
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      const result = await axios.post(
-        "http://localhost:5000/api/v1/auth/register", data, {
-          withCredentials: true
-        }
-      );
-      console.log(result);
+      const result = await api.post("/auth/register", data);
+      console.log(result.data);
+      form.reset();
+      router.push(callbackUrl);
     } catch (error) {
-      
+      console.log(error);
     }
-    console.log(data);
   };
 
   return (
@@ -74,20 +80,26 @@ export const RegisterForm = () => {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
           <Label>Full Name</Label>
-          <Input {...register("name") } />
-          {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
+          <Input {...register("name")} />
+          {errors.name && (
+            <p className="text-sm text-red-500">{errors.name.message}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Username</Label>
             <Input {...register("username")} />
-            {errors.username && <p className="text-sm text-red-500">{errors.username.message}</p>}
+            {errors.username && (
+              <p className="text-sm text-red-500">{errors.username.message}</p>
+            )}
           </div>
           <div>
             <Label>Email</Label>
             <Input type="email" {...register("email")} />
-            {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-sm text-red-500">{errors.email.message}</p>
+            )}
           </div>
         </div>
 
@@ -98,7 +110,9 @@ export const RegisterForm = () => {
             name="password"
             placeholder="••••••••"
           />
-          {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+          {errors.password && (
+            <p className="text-sm text-red-500">{errors.password.message}</p>
+          )}
         </div>
 
         <div>
@@ -108,7 +122,11 @@ export const RegisterForm = () => {
             name="confirmPassword"
             placeholder="••••••••"
           />
-          {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>}
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-500">
+              {errors.confirmPassword.message}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -120,7 +138,9 @@ export const RegisterForm = () => {
           <label htmlFor="terms" className="text-sm text-muted-foreground">
             I agree to Terms & Privacy
           </label>
-          {errors.terms && <p className="text-sm text-red-500">{errors.terms.message}</p>}
+          {errors.terms && (
+            <p className="text-sm text-red-500">{errors.terms.message}</p>
+          )}
         </div>
 
         <Button
